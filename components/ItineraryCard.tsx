@@ -22,7 +22,7 @@ export function ItineraryCard({ itinerary }: { itinerary: ItineraryDay[] }) {
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white">
                   <p className="text-sm font-semibold">{day.photo.title}</p>
                   <p className="mt-1 text-xs text-white/80">
-                    {day.photo.location} · {day.photo.credit}
+                    {day.photo.location} - {day.photo.credit}
                   </p>
                 </div>
               </div>

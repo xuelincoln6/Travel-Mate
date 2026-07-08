@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getTripDates } from "@/lib/date";
 import {
   buildBudget,
   buildChecklist,
@@ -40,21 +41,33 @@ async function generateAiItinerary(request: TripRequest): Promise<ItineraryDay[]
     return null;
   }
 
+  const tripDates = getTripDates(request.departureDate, request.returnDate);
+
   const response = await openai.responses.create({
     model: "gpt-4.1-mini",
     input: [
       {
         role: "system",
         content:
-          "You are a practical travel planner. Return strict JSON only. Keep suggestions concise, realistic, and safe."
+          "You are a practical destination expert. Return strict JSON only. Every day must include real city or area names, real attractions, local food, and local transport that are specific to the destination."
       },
       {
         role: "user",
-        content: `Create a day-by-day itinerary for this trip:
+        content: `Create a destination-specific day-by-day itinerary for this trip:
 Passport/Nationality: ${request.nationality}
 Destination: ${request.destination}
 Departure Date: ${request.departureDate}
 Return Date: ${request.returnDate}
+Trip Dates: ${tripDates.join(", ")}
+Trip Length: ${tripDates.length} days
+
+Rules:
+- Return exactly ${tripDates.length} itinerary days, one for each Trip Date.
+- Use the supplied date for each day.
+- Make the itinerary obviously specific to ${request.destination}; do not use generic museum/market/viewpoint filler.
+- Include real city or area names, real local attractions, local food suggestions, and destination-specific transport.
+- Consider ${request.nationality} as context for arrival pace, border formalities, and entry-preparation wording.
+- Keep each field concise enough to display in a dashboard card.
 
 Return JSON in this exact shape:
 {
@@ -76,7 +89,7 @@ Return JSON in this exact shape:
   });
 
   const parsed = extractJson<ItineraryResponse>(response.output_text);
-  return parsed?.itinerary?.length ? parsed.itinerary : null;
+  return isValidItinerary(parsed?.itinerary, tripDates) ? parsed.itinerary : null;
 }
 
 export async function createTripPlan(request: TripRequest): Promise<TripPlan> {
@@ -162,6 +175,23 @@ Return JSON in this exact shape:
     reply: parsed.reply,
     itinerary: preserveItineraryPhotos(plan.itinerary, parsed.itinerary)
   };
+}
+
+function isValidItinerary(
+  itinerary: ItineraryDay[] | undefined,
+  expectedDates: string[]
+): itinerary is ItineraryDay[] {
+  if (!itinerary || itinerary.length !== expectedDates.length) {
+    return false;
+  }
+
+  return itinerary.every((day, index) => {
+    return (
+      day.day === index + 1 &&
+      day.date === expectedDates[index] &&
+      Boolean(day.title && day.morning && day.afternoon && day.evening && day.restaurant && day.transport)
+    );
+  });
 }
 
 function attachItineraryPhotos(request: TripRequest, itinerary: ItineraryDay[]): ItineraryDay[] {

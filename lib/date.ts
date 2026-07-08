@@ -1,6 +1,6 @@
 export function getTripDates(departureDate: string, returnDate: string): string[] {
-  const start = new Date(`${departureDate}T00:00:00`);
-  const end = new Date(`${returnDate}T00:00:00`);
+  const start = parseDateOnly(departureDate);
+  const end = parseDateOnly(returnDate);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
     throw new Error("Return date must be on or after departure date.");
@@ -21,12 +21,18 @@ export function formatDisplayDate(date: string): string {
   return new Intl.DateTimeFormat("en", {
     weekday: "short",
     month: "short",
-    day: "numeric"
-  }).format(new Date(`${date}T00:00:00`));
+    day: "numeric",
+    timeZone: "UTC"
+  }).format(parseDateOnly(date));
 }
 
 export function calculateNights(departureDate: string, returnDate: string): number {
-  const start = new Date(`${departureDate}T00:00:00`);
-  const end = new Date(`${returnDate}T00:00:00`);
+  const start = parseDateOnly(departureDate);
+  const end = parseDateOnly(returnDate);
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000));
+}
+
+function parseDateOnly(date: string): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }

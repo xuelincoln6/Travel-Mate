@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:trip": "node scripts/compare-trip-generation.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
